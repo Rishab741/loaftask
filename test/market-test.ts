@@ -8,9 +8,9 @@ describe("Market (Pari-mutuels) flow", function () {
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
-  let token: Contract;
-  let factory: Contract;
-  let market: Contract;
+  let token: any;
+  let factory: any;
+  let market: any;
 
   beforeEach(async () => {
     [deployer, alice, bob] = await ethers.getSigners();
