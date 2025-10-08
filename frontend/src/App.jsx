@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { Wallet, TrendingUp, Award, Settings, AlertCircle, CheckCircle, PlusCircle, BarChart2 } from 'lucide-react';
+import { Wallet, TrendingUp, Award, Settings, AlertCircle, CheckCircle, PlusCircle, BarChart2, DollarSign, RefreshCw } from 'lucide-react';
 import StockChart from './StockChart.jsx';
 
 // --- CONTRACT CONFIGURATION ---
@@ -71,6 +71,8 @@ export default function LoafPredictionApp() {
   const [markets, setMarkets] = useState([]);
   const [marketData, setMarketData] = useState(null);
   const [userBets, setUserBets] = useState({});
+  const [tokenAllowance, setTokenAllowance] = useState('0');
+  const [tokenBalance, setTokenBalance] = useState('0');
  
   const [betAmount, setBetAmount] = useState('');
   const [selectedOutcome, setSelectedOutcome] = useState(0);
@@ -82,6 +84,7 @@ export default function LoafPredictionApp() {
   const [resolveOutcome, setResolveOutcome] = useState('0');
  
   const [loading, setLoading] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [activeTab, setActiveTab] = useState('bet');
 
@@ -93,12 +96,61 @@ export default function LoafPredictionApp() {
     if (marketAddress) loadMarketData();
   }, [marketAddress]);
 
+  // Check token allowance
+  async function checkAllowance() {
+    if (!provider || !account || !marketAddress) return;
+    
+    try {
+      const token = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
+      const allowance = await token.allowance(account, marketAddress);
+      setTokenAllowance(ethers.formatEther(allowance));
+    } catch (error) {
+      console.error('Error checking allowance:', error);
+    }
+  }
+
+  // Check token balance
+  async function checkBalance() {
+    if (!provider || !account) return;
+    
+    try {
+      const token = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
+      const balance = await token.balanceOf(account);
+      setTokenBalance(ethers.formatEther(balance));
+    } catch (error) {
+      console.error('Error checking balance:', error);
+    }
+  }
+
   // Extract stock symbol from market metadata
   function extractStockSymbol(metadata) {
-    // Look for stock symbols (2-5 uppercase letters)
     const match = metadata.match(/\b([A-Z]{2,5})\b/);
     return match ? match[1] : null;
   }
+
+  // Calculate if user has sufficient allowance
+  const hasSufficientAllowance = () => {
+    if (!betAmount) return false;
+    try {
+      const betAmountWei = ethers.parseEther(betAmount);
+      const allowanceWei = ethers.parseEther(tokenAllowance || '0');
+      return allowanceWei >= betAmountWei;
+    } catch {
+      return false;
+    }
+  };
+
+  // Calculate if user has sufficient balance
+  const hasSufficientBalance = () => {
+    if (!betAmount) return false;
+    try {
+      const betAmountWei = ethers.parseEther(betAmount);
+      const balanceWei = ethers.parseEther(tokenBalance || '0');
+      return balanceWei >= betAmountWei;
+    } catch {
+      return false;
+    }
+  };
 
   async function connectWallet() {
     try {
@@ -174,6 +226,10 @@ export default function LoafPredictionApp() {
         });
         setUserBets(bets);
       }
+
+      // Check allowance and balance after loading market data
+      await checkAllowance();
+      await checkBalance();
     } catch (error) {
       setMessage({ type: 'error', text: `Error loading market: ${error.message}` });
       setMarketData(null);
@@ -202,22 +258,40 @@ export default function LoafPredictionApp() {
 
   async function approveTokens() {
     if (!signer || !betAmount) return;
-    const token = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-    const amount = ethers.parseEther(betAmount);
-    await handleTransaction(() => token.approve(marketAddress, amount), 'Approving tokens...', 'Tokens approved!');
+    try {
+      setApproving(true);
+      setMessage({ type: 'info', text: 'Approving tokens...' });
+      const token = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
+      const amount = ethers.parseEther(betAmount);
+      const tx = await token.approve(marketAddress, amount);
+      await tx.wait();
+      setMessage({ type: 'success', text: 'Tokens approved!' });
+      await checkAllowance(); // Refresh allowance after approval
+    } catch (error) {
+      const errorMessage = error.reason || error.data?.message || error.message;
+      setMessage({ type: 'error', text: `Approval failed: ${errorMessage}` });
+    } finally {
+      setApproving(false);
+    }
   }
 
   async function placeBet() {
     if (!signer || !betAmount) return;
     const market = new ethers.Contract(marketAddress, MARKET_ABI, signer);
     const amount = ethers.parseEther(betAmount);
-    await handleTransaction(() => market.placeBet(selectedOutcome, amount), 'Placing bet...', 'Bet placed successfully!');
+    const success = await handleTransaction(() => market.placeBet(selectedOutcome, amount), 'Placing bet...', 'Bet placed successfully!');
+    if (success) {
+      await checkBalance(); // Refresh balance after bet
+    }
   }
 
   async function claimWinnings() {
     if (!signer) return;
     const market = new ethers.Contract(marketAddress, MARKET_ABI, signer);
-    await handleTransaction(() => market.claimWinnings(), 'Claiming winnings...', 'Winnings claimed!');
+    const success = await handleTransaction(() => market.claimWinnings(), 'Claiming winnings...', 'Winnings claimed!');
+    if (success) {
+      await checkBalance(); // Refresh balance after claim
+    }
   }
 
   async function resolveMarket() {
@@ -232,7 +306,6 @@ export default function LoafPredictionApp() {
       return;
     }
 
-    // Build metadata with stock symbol included
     const stockName = POPULAR_STOCKS.find(s => s.symbol === selectedStock)?.name || selectedStock;
     const metadata = `Will ${stockName} (${selectedStock}) trade ${direction} $${priceTarget} by ${timeframe}?`;
     
@@ -270,6 +343,33 @@ export default function LoafPredictionApp() {
         </header>
 
         <div className="mb-6"><Notification message={message} /></div>
+
+        {/* Token Balance & Allowance Info */}
+        {account && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-green-400" />
+                  <span className="text-sm font-semibold">Balance:</span>
+                  <span className="text-sm">{parseFloat(tokenBalance).toFixed(2)} tokens</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-semibold">Approved:</span>
+                  <span className="text-sm">{parseFloat(tokenAllowance).toFixed(2)} tokens</span>
+                </div>
+              </div>
+              <button
+                onClick={() => { checkAllowance(); checkBalance(); }}
+                className="flex items-center gap-1 px-3 py-1 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-md transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        )}
 
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
          
@@ -323,7 +423,6 @@ export default function LoafPredictionApp() {
                     </div>
                   )}
 
-                  {/* Always show stock chart - extract symbol from metadata */}
                   {(() => {
                     const stockSymbol = extractStockSymbol(marketData.metadata);
                     return stockSymbol ? <StockChart stockSymbol={stockSymbol} /> : (
@@ -367,10 +466,50 @@ export default function LoafPredictionApp() {
                           ))}
                         </div>
                         <div className="space-y-4">
-                          <input type="text" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="10.0" className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                          <input 
+                            type="text" 
+                            value={betAmount} 
+                            onChange={(e) => setBetAmount(e.target.value)} 
+                            placeholder="10.0" 
+                            className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                          />
+                          
+                          {/* Allowance and Balance Feedback */}
+                          {betAmount && (
+                            <div className="space-y-2 text-sm">
+                              {!hasSufficientBalance() && (
+                                <p className="text-red-400">
+                                  ❌ Insufficient balance. You have {parseFloat(tokenBalance).toFixed(2)} tokens.
+                                </p>
+                              )}
+                              {hasSufficientBalance() && !hasSufficientAllowance() && (
+                                <p className="text-yellow-400">
+                                  ⚠️ Approval needed for {betAmount} tokens.
+                                </p>
+                              )}
+                              {hasSufficientBalance() && hasSufficientAllowance() && (
+                                <p className="text-green-400">
+                                  ✅ Ready to bet! Allowance confirmed.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          
                           <div className="flex gap-4">
-                            <button onClick={approveTokens} disabled={loading || !betAmount} className="flex-1 py-3 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors">Approve</button>
-                            <button onClick={placeBet} disabled={loading || !betAmount} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors">Place Bet</button>
+                            <button 
+                              onClick={approveTokens} 
+                              disabled={approving || !betAmount || !hasSufficientBalance() || hasSufficientAllowance()}
+                              className="flex-1 py-3 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+                            >
+                              {approving ? 'Approving...' : 'Approve Tokens'}
+                            </button>
+                            <button 
+                              onClick={placeBet} 
+                              disabled={loading || !betAmount || !hasSufficientBalance() || !hasSufficientAllowance()}
+                              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+                            >
+                              {loading ? 'Placing Bet...' : 'Place Bet'}
+                            </button>
                           </div>
                         </div>
                       </div>
