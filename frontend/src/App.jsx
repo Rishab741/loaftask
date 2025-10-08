@@ -1,19 +1,38 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { Wallet, TrendingUp, Award, Settings, AlertCircle, CheckCircle, PlusCircle, BarChart2 } from 'lucide-react';
+import StockChart from './StockChart.jsx';
 
 // --- CONTRACT CONFIGURATION ---
-// ABIs remain the same
 const MARKET_ABI = ["function placeBet(uint256 outcome, uint256 amount) external", "function claimWinnings() external", "function resolve(uint256 _winningOutcome) external", "function cancelMarket() external", "function state() view returns (uint8)", "function totalPool() view returns (uint256)", "function winningOutcome() view returns (uint256)", "function outcomesCount() view returns (uint256)", "function totalBetsPerOutcome(uint256) view returns (uint256)", "function bets(address, uint256) view returns (uint256)", "function metadata() view returns (string)", "function feeBps() view returns (uint256)", "event BetPlaced(address indexed user, uint256 indexed outcome, uint256 amount)", "event MarketResolved(uint256 indexed winningOutcome)", "event WinningsClaimed(address indexed user, uint256 amount)"];
+
 const TOKEN_ABI = ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)", "function balanceOf(address account) view returns (uint256)", "function symbol() view returns (string)", "function decimals() view returns (uint8)"];
+
 const FACTORY_ABI = ["function createMarket(address settlementToken, string calldata metadata, uint256 outcomesCount, uint256 feeBps) external returns (address)", "function getMarkets() external view returns (address[] memory)", "event MarketCreated(address indexed market, address creator)"];
 
-// **Hardcoded Sepolia contract addresses**
 const FACTORY_ADDRESS = "0x73B2CAD64a74901D728c33B38C3878EfF84Ede59";
 const TOKEN_ADDRESS = "0x9ecF1946dEB0FCb8E5d1d377577fcDD326594971";
 
-// --- UI COMPONENTS ---
+// Popular stocks with FREE API access
+const POPULAR_STOCKS = [
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft' },
+  { symbol: 'GOOGL', name: 'Alphabet (Google)' },
+  { symbol: 'AMZN', name: 'Amazon' },
+  { symbol: 'TSLA', name: 'Tesla' },
+  { symbol: 'NVDA', name: 'NVIDIA' },
+  { symbol: 'META', name: 'Meta (Facebook)' },
+  { symbol: 'JPM', name: 'JPMorgan Chase' },
+  { symbol: 'V', name: 'Visa' },
+  { symbol: 'WMT', name: 'Walmart' },
+  { symbol: 'DIS', name: 'Disney' },
+  { symbol: 'NFLX', name: 'Netflix' },
+  { symbol: 'BA', name: 'Boeing' },
+  { symbol: 'COIN', name: 'Coinbase' },
+  { symbol: 'UBER', name: 'Uber' }
+];
 
+// --- UI COMPONENTS ---
 const StatCard = ({ title, value, icon }) => (
   <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
     <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -42,30 +61,30 @@ const Notification = ({ message }) => {
   );
 };
 
-
 // --- MAIN APP COMPONENT ---
-
 export default function LoafPredictionApp() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [account, setAccount] = useState('');
-  
+ 
   const [marketAddress, setMarketAddress] = useState('');
   const [markets, setMarkets] = useState([]);
   const [marketData, setMarketData] = useState(null);
   const [userBets, setUserBets] = useState({});
-  
+ 
   const [betAmount, setBetAmount] = useState('');
   const [selectedOutcome, setSelectedOutcome] = useState(0);
-  const [newMarketMetadata, setNewMarketMetadata] = useState('');
+  const [selectedStock, setSelectedStock] = useState(POPULAR_STOCKS[0].symbol);
+  const [priceTarget, setPriceTarget] = useState('');
+  const [timeframe, setTimeframe] = useState('EOY 2025');
+  const [direction, setDirection] = useState('above');
   const [newMarketOutcomes, setNewMarketOutcomes] = useState('2');
   const [resolveOutcome, setResolveOutcome] = useState('0');
-  
+ 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [activeTab, setActiveTab] = useState('bet');
 
-  // Auto-load markets on connect and market data on selection
   useEffect(() => {
     if (provider) loadMarkets();
   }, [provider]);
@@ -73,6 +92,13 @@ export default function LoafPredictionApp() {
   useEffect(() => {
     if (marketAddress) loadMarketData();
   }, [marketAddress]);
+
+  // Extract stock symbol from market metadata
+  function extractStockSymbol(metadata) {
+    // Look for stock symbols (2-5 uppercase letters)
+    const match = metadata.match(/\b([A-Z]{2,5})\b/);
+    return match ? match[1] : null;
+  }
 
   async function connectWallet() {
     try {
@@ -84,7 +110,7 @@ export default function LoafPredictionApp() {
       await prov.send("eth_requestAccounts", []);
       const s = await prov.getSigner();
       const addr = await s.getAddress();
-      
+     
       setProvider(prov);
       setSigner(s);
       setAccount(addr);
@@ -100,11 +126,13 @@ export default function LoafPredictionApp() {
       setLoading(true);
       const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, provider);
       const marketAddresses = await factory.getMarkets();
-      setMarkets([...marketAddresses].reverse()); // Show newest first
-      if (marketAddresses.length > 0) {
-        setMarketAddress(marketAddresses[0]); // Auto-select the latest market
+      const reversedMarkets = [...marketAddresses].reverse();
+      setMarkets(reversedMarkets);
+     
+      if (reversedMarkets.length > 0) {
+        setMarketAddress(reversedMarkets[0]);
       }
-      setMessage({ type: 'success', text: `Found ${marketAddresses.length} markets` });
+      setMessage({ type: 'success', text: `Found ${marketAddresses.length} stock markets` });
     } catch (error) {
       setMessage({ type: 'error', text: `Could not load markets: ${error.message}` });
     } finally {
@@ -120,13 +148,13 @@ export default function LoafPredictionApp() {
       const [state, totalPool, outcomesCount, metadata, feeBps] = await Promise.all([
         market.state(), market.totalPool(), market.outcomesCount(), market.metadata(), market.feeBps()
       ]);
-      
+     
       const outcomeData = await Promise.all(
         Array.from({ length: Number(outcomesCount) }).map((_, i) => market.totalBetsPerOutcome(i))
       );
-      
+     
       let winningOutcome = (Number(state) === 1) ? await market.winningOutcome() : null;
-      
+     
       setMarketData({
         state: ['Active', 'Resolved', 'Cancelled'][Number(state)],
         totalPool: ethers.formatEther(totalPool),
@@ -136,7 +164,7 @@ export default function LoafPredictionApp() {
         feeBps: Number(feeBps),
         winningOutcome: winningOutcome !== null ? Number(winningOutcome) : null
       });
-      
+     
       if (account) {
         const bets = {};
         const userBetsPromises = Array.from({ length: Number(outcomesCount) }).map((_, i) => market.bets(account, i));
@@ -164,7 +192,8 @@ export default function LoafPredictionApp() {
       await loadMarketData();
       return true;
     } catch (error) {
-      setMessage({ type: 'error', text: `Transaction failed: ${error.data?.message || error.message}` });
+      const errorMessage = error.reason || error.data?.message || error.message;
+      setMessage({ type: 'error', text: `Transaction failed: ${errorMessage}` });
       return false;
     } finally {
       setLoading(false);
@@ -196,27 +225,40 @@ export default function LoafPredictionApp() {
     const market = new ethers.Contract(marketAddress, MARKET_ABI, signer);
     await handleTransaction(() => market.resolve(parseInt(resolveOutcome)), 'Resolving market...', 'Market resolved!');
   }
-  
+ 
   async function createMarket() {
-    if (!signer || !newMarketMetadata) return;
+    if (!signer || !priceTarget) {
+      setMessage({ type: 'error', text: 'Please fill in all fields' });
+      return;
+    }
+
+    // Build metadata with stock symbol included
+    const stockName = POPULAR_STOCKS.find(s => s.symbol === selectedStock)?.name || selectedStock;
+    const metadata = `Will ${stockName} (${selectedStock}) trade ${direction} $${priceTarget} by ${timeframe}?`;
+    
     const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
     const success = await handleTransaction(
-      () => factory.createMarket(TOKEN_ADDRESS, newMarketMetadata, parseInt(newMarketOutcomes), 200),
-      'Creating new market...',
-      'Market created successfully!'
+      () => factory.createMarket(TOKEN_ADDRESS, metadata, parseInt(newMarketOutcomes), 200),
+      'Creating new stock market...',
+      'Stock Market created successfully!'
     );
-    if (success) await loadMarkets(); // Refresh market list
+    if (success) {
+      await loadMarkets();
+      setPriceTarget('');
+    }
   }
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        
-        {/* Header */}
+       
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-8 h-8 text-indigo-400" />
-            <h1 className="text-3xl font-bold tracking-tight">Loaf Prediction</h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Loaf Stock Predictions</h1>
+              <p className="text-sm text-slate-400 mt-1">Predict stock market movements</p>
+            </div>
           </div>
           <button
             onClick={connectWallet}
@@ -229,12 +271,10 @@ export default function LoafPredictionApp() {
 
         <div className="mb-6"><Notification message={message} /></div>
 
-        {/* Main Content Grid */}
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column: Markets List */}
+         
           <aside className="lg:col-span-1 space-y-4">
-            <h2 className="text-xl font-bold px-2">Available Markets</h2>
+            <h2 className="text-xl font-bold px-2">Stock Markets</h2>
             <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
               {markets.length > 0 ? markets.map((addr, idx) => (
                 <div
@@ -251,35 +291,49 @@ export default function LoafPredictionApp() {
                 </div>
               )) : (
                 <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 text-center text-slate-400">
-                  {account ? 'No markets found.' : 'Connect wallet to see markets.'}
+                  {account ? 'No stock markets found. Create one!' : 'Connect wallet to see markets.'}
                 </div>
               )}
             </div>
           </aside>
 
-          {/* Right Column: Market Details & Actions */}
           <div className="lg:col-span-2 space-y-8">
             {marketData ? (
               <>
-                {/* Market Info */}
                 <section className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                  <p className="text-slate-400 text-sm">Market Question</p>
-                  <h2 className="text-2xl font-bold mb-4">{marketData.metadata}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="flex items-start gap-3 mb-4">
+                    <BarChart2 className="w-6 h-6 text-indigo-400 mt-1" />
+                    <div className="flex-1">
+                      <p className="text-slate-400 text-sm mb-1">Stock Market Question</p>
+                      <h2 className="text-2xl font-bold">{marketData.metadata}</h2>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <StatCard title="Status" value={marketData.state} icon={<CheckCircle size={16} />} />
                     <StatCard title="Total Pool" value={`${parseFloat(marketData.totalPool).toFixed(2)}`} icon={<BarChart2 size={16} />} />
                     <StatCard title="Outcomes" value={marketData.outcomesCount} icon={<Settings size={16} />} />
                     <StatCard title="Fee" value={`${marketData.feeBps / 100}%`} icon={<TrendingUp size={16} />} />
                   </div>
+                  
                   {marketData.winningOutcome !== null && (
-                    <div className="mt-4 bg-green-900/50 border border-green-500 p-3 rounded-lg flex items-center gap-2 font-semibold">
+                    <div className="mb-6 bg-green-900/50 border border-green-500 p-3 rounded-lg flex items-center gap-2 font-semibold">
                       <Award className="w-5 h-5 text-green-400" />
                       <span>Winning Outcome: {marketData.winningOutcome}</span>
                     </div>
                   )}
+
+                  {/* Always show stock chart - extract symbol from metadata */}
+                  {(() => {
+                    const stockSymbol = extractStockSymbol(marketData.metadata);
+                    return stockSymbol ? <StockChart stockSymbol={stockSymbol} /> : (
+                      <div className="bg-yellow-900/30 border border-yellow-600 p-4 rounded-lg text-sm">
+                        <p>⚠️ Stock symbol not found in market metadata. Chart unavailable.</p>
+                      </div>
+                    );
+                  })()}
                 </section>
 
-                {/* Action Tabs */}
                 <section>
                   <div className="flex border-b border-slate-700 mb-6">
                     {['bet', 'claim', 'admin', 'create'].map(tab => (
@@ -322,13 +376,13 @@ export default function LoafPredictionApp() {
                       </div>
                     )}
                     {activeTab === 'claim' && (
-                       <div>
+                      <div>
                         <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Award /> Claim Winnings</h3>
                         {marketData.state === 'Resolved' ? (
                           <div className="space-y-4">
                             <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
-                                <p>Winning outcome: <span className="font-bold text-green-400">{marketData.winningOutcome}</span></p>
-                                <p>Your winning bet: <span className="font-bold text-green-400">{userBets[marketData.winningOutcome] || '0.0'} tokens</span></p>
+                              <p>Winning outcome: <span className="font-bold text-green-400">{marketData.winningOutcome}</span></p>
+                              <p>Your winning bet: <span className="font-bold text-green-400">{userBets[marketData.winningOutcome] || '0.0'} tokens</span></p>
                             </div>
                             <button onClick={claimWinnings} disabled={loading} className="w-full py-3 bg-green-600 hover:bg-green-500 rounded-lg font-semibold">Claim Winnings</button>
                           </div>
@@ -351,11 +405,93 @@ export default function LoafPredictionApp() {
                     )}
                     {activeTab === 'create' && (
                       <div>
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><PlusCircle/> Create New Market</h3>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><PlusCircle/> Create Stock Market</h3>
                         <div className="space-y-4">
-                          <input type="text" value={newMarketMetadata} onChange={(e) => setNewMarketMetadata(e.target.value)} placeholder="Market Question (e.g., Will ETH reach $5k by EOY?)" className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                          <input type="number" value={newMarketOutcomes} onChange={(e) => setNewMarketOutcomes(e.target.value)} min="2" placeholder="2" className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                          <button onClick={createMarket} disabled={loading || !newMarketMetadata} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg font-semibold">Create Market</button>
+                          <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-300">Select Stock</label>
+                            <select 
+                              value={selectedStock} 
+                              onChange={(e) => setSelectedStock(e.target.value)}
+                              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              {POPULAR_STOCKS.map(stock => (
+                                <option key={stock.symbol} value={stock.symbol}>
+                                  {stock.name} ({stock.symbol})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold mb-2 text-slate-300">Direction</label>
+                              <select 
+                                value={direction} 
+                                onChange={(e) => setDirection(e.target.value)}
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="above">Above</option>
+                                <option value="below">Below</option>
+                              </select>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-semibold mb-2 text-slate-300">Price Target ($)</label>
+                              <input 
+                                type="number" 
+                                value={priceTarget} 
+                                onChange={(e) => setPriceTarget(e.target.value)} 
+                                placeholder="200.00"
+                                step="0.01"
+                                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-300">Timeframe</label>
+                            <select 
+                              value={timeframe} 
+                              onChange={(e) => setTimeframe(e.target.value)}
+                              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              <option value="end of this month">End of this month</option>
+                              <option value="end of next month">End of next month</option>
+                              <option value="Q1 2025">Q1 2025</option>
+                              <option value="Q2 2025">Q2 2025</option>
+                              <option value="Q3 2025">Q3 2025</option>
+                              <option value="Q4 2025">Q4 2025</option>
+                              <option value="EOY 2025">EOY 2025</option>
+                              <option value="EOY 2026">EOY 2026</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-300">Number of Outcomes</label>
+                            <input 
+                              type="number" 
+                              value={newMarketOutcomes} 
+                              onChange={(e) => setNewMarketOutcomes(e.target.value)} 
+                              min="2" 
+                              placeholder="2"
+                              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                            />
+                          </div>
+
+                          <div className="bg-slate-900/50 border border-slate-600 p-4 rounded-lg">
+                            <p className="text-sm text-slate-400 mb-2">Preview:</p>
+                            <p className="font-semibold">
+                              Will {POPULAR_STOCKS.find(s => s.symbol === selectedStock)?.name} ({selectedStock}) trade {direction} ${priceTarget || '___'} by {timeframe}?
+                            </p>
+                          </div>
+
+                          <button 
+                            onClick={createMarket} 
+                            disabled={loading || !priceTarget} 
+                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg font-semibold"
+                          >
+                            Create Stock Market
+                          </button>
                         </div>
                       </div>
                     )}
@@ -364,7 +500,8 @@ export default function LoafPredictionApp() {
               </>
             ) : (
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-12 text-center text-slate-400">
-                <p>{account ? 'Select a market from the left to view details.' : 'Please connect your wallet to begin.'}</p>
+                <BarChart2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>{account ? 'Select a stock market from the left to view details.' : 'Please connect your wallet to begin.'}</p>
               </div>
             )}
           </div>
