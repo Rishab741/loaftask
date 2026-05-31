@@ -57,6 +57,10 @@ declare module "hardhat/types/runtime" {
       name: "SettlementToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SettlementToken__factory>;
+    getContractFactory(
+      name: "TenantRegistry",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TenantRegistry__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -113,6 +117,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.SettlementToken>;
+    getContractAt(
+      name: "TenantRegistry",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TenantRegistry>;
 
     deployContract(
       name: "Ownable",
@@ -158,6 +167,10 @@ declare module "hardhat/types/runtime" {
       name: "SettlementToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SettlementToken>;
+    deployContract(
+      name: "TenantRegistry",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TenantRegistry>;
 
     deployContract(
       name: "Ownable",
@@ -214,6 +227,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SettlementToken>;
+    deployContract(
+      name: "TenantRegistry",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TenantRegistry>;
 
     // default types
     getContractFactory(

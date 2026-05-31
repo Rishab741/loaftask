@@ -26,9 +26,15 @@ import type {
 export interface MarketFactoryInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "allMarkets"
       | "createMarket"
+      | "getCategoryMarkets"
+      | "getCreatorMarkets"
+      | "getMarketCount"
+      | "getMarketInfo"
       | "getMarkets"
-      | "markets"
+      | "getTenantMarkets"
+      | "marketInfo"
       | "owner"
       | "renounceOwnership"
       | "transferOwnership"
@@ -39,16 +45,47 @@ export interface MarketFactoryInterface extends Interface {
   ): EventFragment;
 
   encodeFunctionData(
+    functionFragment: "allMarkets",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "createMarket",
-    values: [AddressLike, string, BigNumberish, BigNumberish]
+    values: [
+      AddressLike,
+      string,
+      BigNumberish,
+      BigNumberish,
+      string,
+      AddressLike
+    ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getCategoryMarkets",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getCreatorMarkets",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMarketCount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMarketInfo",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getMarkets",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "markets",
-    values: [BigNumberish]
+    functionFragment: "getTenantMarkets",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "marketInfo",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -60,12 +97,33 @@ export interface MarketFactoryInterface extends Interface {
     values: [AddressLike]
   ): string;
 
+  decodeFunctionResult(functionFragment: "allMarkets", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "createMarket",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getCategoryMarkets",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getCreatorMarkets",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getMarketCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getMarketInfo",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "getMarkets", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "markets", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getTenantMarkets",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "marketInfo", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
@@ -78,11 +136,23 @@ export interface MarketFactoryInterface extends Interface {
 }
 
 export namespace MarketCreatedEvent {
-  export type InputTuple = [market: AddressLike, creator: AddressLike];
-  export type OutputTuple = [market: string, creator: string];
+  export type InputTuple = [
+    market: AddressLike,
+    creator: AddressLike,
+    tenant: AddressLike,
+    category: string
+  ];
+  export type OutputTuple = [
+    market: string,
+    creator: string,
+    tenant: string,
+    category: string
+  ];
   export interface OutputObject {
     market: string;
     creator: string;
+    tenant: string;
+    category: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -146,20 +216,68 @@ export interface MarketFactory extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  allMarkets: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+
   createMarket: TypedContractMethod<
     [
       settlementToken: AddressLike,
       metadata: string,
       outcomesCount: BigNumberish,
-      feeBps: BigNumberish
+      feeBps: BigNumberish,
+      category: string,
+      tenant: AddressLike
     ],
     [string],
     "nonpayable"
   >;
 
+  getCategoryMarkets: TypedContractMethod<
+    [category: string],
+    [string[]],
+    "view"
+  >;
+
+  getCreatorMarkets: TypedContractMethod<
+    [creator: AddressLike],
+    [string[]],
+    "view"
+  >;
+
+  getMarketCount: TypedContractMethod<[], [bigint], "view">;
+
+  getMarketInfo: TypedContractMethod<
+    [market: AddressLike],
+    [
+      [string, string, string, bigint] & {
+        creator: string;
+        tenant: string;
+        category: string;
+        createdAt: bigint;
+      }
+    ],
+    "view"
+  >;
+
   getMarkets: TypedContractMethod<[], [string[]], "view">;
 
-  markets: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+  getTenantMarkets: TypedContractMethod<
+    [tenant: AddressLike],
+    [string[]],
+    "view"
+  >;
+
+  marketInfo: TypedContractMethod<
+    [arg0: AddressLike],
+    [
+      [string, string, string, bigint] & {
+        creator: string;
+        tenant: string;
+        category: string;
+        createdAt: bigint;
+      }
+    ],
+    "view"
+  >;
 
   owner: TypedContractMethod<[], [string], "view">;
 
@@ -176,23 +294,65 @@ export interface MarketFactory extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "allMarkets"
+  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+  getFunction(
     nameOrSignature: "createMarket"
   ): TypedContractMethod<
     [
       settlementToken: AddressLike,
       metadata: string,
       outcomesCount: BigNumberish,
-      feeBps: BigNumberish
+      feeBps: BigNumberish,
+      category: string,
+      tenant: AddressLike
     ],
     [string],
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "getCategoryMarkets"
+  ): TypedContractMethod<[category: string], [string[]], "view">;
+  getFunction(
+    nameOrSignature: "getCreatorMarkets"
+  ): TypedContractMethod<[creator: AddressLike], [string[]], "view">;
+  getFunction(
+    nameOrSignature: "getMarketCount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getMarketInfo"
+  ): TypedContractMethod<
+    [market: AddressLike],
+    [
+      [string, string, string, bigint] & {
+        creator: string;
+        tenant: string;
+        category: string;
+        createdAt: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "getMarkets"
   ): TypedContractMethod<[], [string[]], "view">;
   getFunction(
-    nameOrSignature: "markets"
-  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+    nameOrSignature: "getTenantMarkets"
+  ): TypedContractMethod<[tenant: AddressLike], [string[]], "view">;
+  getFunction(
+    nameOrSignature: "marketInfo"
+  ): TypedContractMethod<
+    [arg0: AddressLike],
+    [
+      [string, string, string, bigint] & {
+        creator: string;
+        tenant: string;
+        category: string;
+        createdAt: bigint;
+      }
+    ],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -219,7 +379,7 @@ export interface MarketFactory extends BaseContract {
   >;
 
   filters: {
-    "MarketCreated(address,address)": TypedContractEvent<
+    "MarketCreated(address,address,address,string)": TypedContractEvent<
       MarketCreatedEvent.InputTuple,
       MarketCreatedEvent.OutputTuple,
       MarketCreatedEvent.OutputObject

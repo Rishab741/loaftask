@@ -4,3 +4,4 @@
 export { Market__factory } from "./Market__factory";
 export { MarketFactory__factory } from "./MarketFactory__factory";
 export { SettlementToken__factory } from "./SettlementToken__factory";
+export { TenantRegistry__factory } from "./TenantRegistry__factory";

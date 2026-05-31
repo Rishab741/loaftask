@@ -28,3 +28,5 @@ export type { MarketFactory } from "./contracts/MarketFactory";
 export { MarketFactory__factory } from "./factories/contracts/MarketFactory__factory";
 export type { SettlementToken } from "./contracts/SettlementToken";
 export { SettlementToken__factory } from "./factories/contracts/SettlementToken__factory";
+export type { TenantRegistry } from "./contracts/TenantRegistry";
+export { TenantRegistry__factory } from "./factories/contracts/TenantRegistry__factory";

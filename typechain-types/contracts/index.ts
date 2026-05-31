@@ -4,3 +4,4 @@
 export type { Market } from "./Market";
 export type { MarketFactory } from "./MarketFactory";
 export type { SettlementToken } from "./SettlementToken";
+export type { TenantRegistry } from "./TenantRegistry";

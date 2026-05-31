@@ -23,28 +23,94 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace SettlementToken {
+  export type SaleConfigStruct = {
+    tokensPerEth: BigNumberish;
+    minPurchase: BigNumberish;
+    maxPurchase: BigNumberish;
+    saleSupply: BigNumberish;
+    startTime: BigNumberish;
+    endTime: BigNumberish;
+    hardCap: BigNumberish;
+    whitelistEnabled: boolean;
+  };
+
+  export type SaleConfigStructOutput = [
+    tokensPerEth: bigint,
+    minPurchase: bigint,
+    maxPurchase: bigint,
+    saleSupply: bigint,
+    startTime: bigint,
+    endTime: bigint,
+    hardCap: bigint,
+    whitelistEnabled: boolean
+  ] & {
+    tokensPerEth: bigint;
+    minPurchase: bigint;
+    maxPurchase: bigint;
+    saleSupply: bigint;
+    startTime: bigint;
+    endTime: bigint;
+    hardCap: bigint;
+    whitelistEnabled: boolean;
+  };
+}
+
 export interface SettlementTokenInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "addToWhitelist"
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "buyTokens"
+      | "buyTokensWithStablecoin"
+      | "calculateTokensForEth"
+      | "calculateTokensForStablecoin"
+      | "contributions"
       | "decimals"
+      | "endSale"
+      | "getSaleInfo"
+      | "getSupportedStablecoins"
       | "mint"
       | "name"
       | "owner"
+      | "removeFromWhitelist"
       | "renounceOwnership"
+      | "saleActive"
+      | "saleConfig"
+      | "setStablecoinRate"
+      | "stablecoinConfigs"
+      | "startSale"
       | "symbol"
+      | "tokensSold"
+      | "totalRaised"
       | "totalSupply"
       | "transfer"
       | "transferFrom"
       | "transferOwnership"
+      | "whitelist"
+      | "withdrawRaisedETH"
+      | "withdrawStablecoins"
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "Approval" | "OwnershipTransferred" | "Transfer"
+    nameOrSignatureOrTopic:
+      | "Approval"
+      | "OwnershipTransferred"
+      | "SaleEnded"
+      | "SaleStarted"
+      | "StablecoinConfigured"
+      | "TokensPurchased"
+      | "TokensPurchasedWithStablecoin"
+      | "Transfer"
+      | "WhitelistUpdated"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "addToWhitelist",
+    values: [AddressLike[]]
+  ): string;
   encodeFunctionData(
     functionFragment: "allowance",
     values: [AddressLike, AddressLike]
@@ -57,7 +123,33 @@ export interface SettlementTokenInterface extends Interface {
     functionFragment: "balanceOf",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(functionFragment: "buyTokens", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "buyTokensWithStablecoin",
+    values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateTokensForEth",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "calculateTokensForStablecoin",
+    values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "contributions",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "decimals", values?: undefined): string;
+  encodeFunctionData(functionFragment: "endSale", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "getSaleInfo",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getSupportedStablecoins",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "mint",
     values: [AddressLike, BigNumberish]
@@ -65,10 +157,50 @@ export interface SettlementTokenInterface extends Interface {
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "removeFromWhitelist",
+    values: [AddressLike[]]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "saleActive",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "saleConfig",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setStablecoinRate",
+    values: [AddressLike, BigNumberish, BigNumberish, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "stablecoinConfigs",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "startSale",
+    values: [
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      boolean
+    ]
+  ): string;
   encodeFunctionData(functionFragment: "symbol", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "tokensSold",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "totalRaised",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "totalSupply",
     values?: undefined
@@ -85,19 +217,81 @@ export interface SettlementTokenInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "whitelist",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawRaisedETH",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawStablecoins",
+    values: [AddressLike, AddressLike]
+  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "addToWhitelist",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "buyTokens", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "buyTokensWithStablecoin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateTokensForEth",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "calculateTokensForStablecoin",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "contributions",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "endSale", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getSaleInfo",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getSupportedStablecoins",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "removeFromWhitelist",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "saleActive", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "saleConfig", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setStablecoinRate",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "stablecoinConfigs",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "startSale", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "symbol", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "tokensSold", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "totalRaised",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "totalSupply",
     data: BytesLike
@@ -109,6 +303,15 @@ export interface SettlementTokenInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "whitelist", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawRaisedETH",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawStablecoins",
     data: BytesLike
   ): Result;
 }
@@ -144,6 +347,103 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace SaleEndedEvent {
+  export type InputTuple = [
+    totalRaised: BigNumberish,
+    tokensSold: BigNumberish
+  ];
+  export type OutputTuple = [totalRaised: bigint, tokensSold: bigint];
+  export interface OutputObject {
+    totalRaised: bigint;
+    tokensSold: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace SaleStartedEvent {
+  export type InputTuple = [config: SettlementToken.SaleConfigStruct];
+  export type OutputTuple = [config: SettlementToken.SaleConfigStructOutput];
+  export interface OutputObject {
+    config: SettlementToken.SaleConfigStructOutput;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace StablecoinConfiguredEvent {
+  export type InputTuple = [
+    stablecoin: AddressLike,
+    tokensPerUnit: BigNumberish,
+    enabled: boolean
+  ];
+  export type OutputTuple = [
+    stablecoin: string,
+    tokensPerUnit: bigint,
+    enabled: boolean
+  ];
+  export interface OutputObject {
+    stablecoin: string;
+    tokensPerUnit: bigint;
+    enabled: boolean;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TokensPurchasedEvent {
+  export type InputTuple = [
+    buyer: AddressLike,
+    ethAmount: BigNumberish,
+    tokenAmount: BigNumberish
+  ];
+  export type OutputTuple = [
+    buyer: string,
+    ethAmount: bigint,
+    tokenAmount: bigint
+  ];
+  export interface OutputObject {
+    buyer: string;
+    ethAmount: bigint;
+    tokenAmount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TokensPurchasedWithStablecoinEvent {
+  export type InputTuple = [
+    buyer: AddressLike,
+    stablecoin: AddressLike,
+    stablecoinAmount: BigNumberish,
+    tokenAmount: BigNumberish
+  ];
+  export type OutputTuple = [
+    buyer: string,
+    stablecoin: string,
+    stablecoinAmount: bigint,
+    tokenAmount: bigint
+  ];
+  export interface OutputObject {
+    buyer: string;
+    stablecoin: string;
+    stablecoinAmount: bigint;
+    tokenAmount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace TransferEvent {
   export type InputTuple = [
     from: AddressLike,
@@ -155,6 +455,19 @@ export namespace TransferEvent {
     from: string;
     to: string;
     value: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WhitelistUpdatedEvent {
+  export type InputTuple = [users: AddressLike[], status: boolean];
+  export type OutputTuple = [users: string[], status: boolean];
+  export interface OutputObject {
+    users: string[];
+    status: boolean;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -205,6 +518,12 @@ export interface SettlementToken extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  addToWhitelist: TypedContractMethod<
+    [users: AddressLike[]],
+    [void],
+    "nonpayable"
+  >;
+
   allowance: TypedContractMethod<
     [owner: AddressLike, spender: AddressLike],
     [bigint],
@@ -219,7 +538,49 @@ export interface SettlementToken extends BaseContract {
 
   balanceOf: TypedContractMethod<[account: AddressLike], [bigint], "view">;
 
+  buyTokens: TypedContractMethod<[], [void], "payable">;
+
+  buyTokensWithStablecoin: TypedContractMethod<
+    [stablecoin: AddressLike, stablecoinAmount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  calculateTokensForEth: TypedContractMethod<
+    [ethAmount: BigNumberish],
+    [bigint],
+    "view"
+  >;
+
+  calculateTokensForStablecoin: TypedContractMethod<
+    [stablecoin: AddressLike, stablecoinAmount: BigNumberish],
+    [bigint],
+    "view"
+  >;
+
+  contributions: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+
   decimals: TypedContractMethod<[], [bigint], "view">;
+
+  endSale: TypedContractMethod<[], [void], "nonpayable">;
+
+  getSaleInfo: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, boolean] & {
+        startTime: bigint;
+        endTime: bigint;
+        raised: bigint;
+        sold: bigint;
+        remainingTokens: bigint;
+        tokensPerEth: bigint;
+        active: boolean;
+      }
+    ],
+    "view"
+  >;
+
+  getSupportedStablecoins: TypedContractMethod<[], [string[]], "view">;
 
   mint: TypedContractMethod<
     [to: AddressLike, amount: BigNumberish],
@@ -231,9 +592,75 @@ export interface SettlementToken extends BaseContract {
 
   owner: TypedContractMethod<[], [string], "view">;
 
+  removeFromWhitelist: TypedContractMethod<
+    [users: AddressLike[]],
+    [void],
+    "nonpayable"
+  >;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
+  saleActive: TypedContractMethod<[], [boolean], "view">;
+
+  saleConfig: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint, boolean] & {
+        tokensPerEth: bigint;
+        minPurchase: bigint;
+        maxPurchase: bigint;
+        saleSupply: bigint;
+        startTime: bigint;
+        endTime: bigint;
+        hardCap: bigint;
+        whitelistEnabled: boolean;
+      }
+    ],
+    "view"
+  >;
+
+  setStablecoinRate: TypedContractMethod<
+    [
+      stablecoin: AddressLike,
+      tokensPerUnit: BigNumberish,
+      stablecoinDecimals: BigNumberish,
+      enabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  stablecoinConfigs: TypedContractMethod<
+    [arg0: AddressLike],
+    [
+      [bigint, bigint, boolean] & {
+        tokensPerUnit: bigint;
+        stablecoinDecimals: bigint;
+        enabled: boolean;
+      }
+    ],
+    "view"
+  >;
+
+  startSale: TypedContractMethod<
+    [
+      _tokensPerEth: BigNumberish,
+      _minPurchase: BigNumberish,
+      _maxPurchase: BigNumberish,
+      _saleSupply: BigNumberish,
+      _durationInHours: BigNumberish,
+      _hardCap: BigNumberish,
+      _whitelistEnabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   symbol: TypedContractMethod<[], [string], "view">;
+
+  tokensSold: TypedContractMethod<[], [bigint], "view">;
+
+  totalRaised: TypedContractMethod<[], [bigint], "view">;
 
   totalSupply: TypedContractMethod<[], [bigint], "view">;
 
@@ -255,10 +682,23 @@ export interface SettlementToken extends BaseContract {
     "nonpayable"
   >;
 
+  whitelist: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+
+  withdrawRaisedETH: TypedContractMethod<[], [void], "nonpayable">;
+
+  withdrawStablecoins: TypedContractMethod<
+    [stablecoin: AddressLike, to: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "addToWhitelist"
+  ): TypedContractMethod<[users: AddressLike[]], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "allowance"
   ): TypedContractMethod<
@@ -277,8 +717,54 @@ export interface SettlementToken extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
   getFunction(
+    nameOrSignature: "buyTokens"
+  ): TypedContractMethod<[], [void], "payable">;
+  getFunction(
+    nameOrSignature: "buyTokensWithStablecoin"
+  ): TypedContractMethod<
+    [stablecoin: AddressLike, stablecoinAmount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "calculateTokensForEth"
+  ): TypedContractMethod<[ethAmount: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "calculateTokensForStablecoin"
+  ): TypedContractMethod<
+    [stablecoin: AddressLike, stablecoinAmount: BigNumberish],
+    [bigint],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "contributions"
+  ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  getFunction(
     nameOrSignature: "decimals"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "endSale"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "getSaleInfo"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, boolean] & {
+        startTime: bigint;
+        endTime: bigint;
+        raised: bigint;
+        sold: bigint;
+        remainingTokens: bigint;
+        tokensPerEth: bigint;
+        active: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getSupportedStablecoins"
+  ): TypedContractMethod<[], [string[]], "view">;
   getFunction(
     nameOrSignature: "mint"
   ): TypedContractMethod<
@@ -293,11 +779,81 @@ export interface SettlementToken extends BaseContract {
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "removeFromWhitelist"
+  ): TypedContractMethod<[users: AddressLike[]], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "saleActive"
+  ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "saleConfig"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, bigint, bigint, bigint, bigint, boolean] & {
+        tokensPerEth: bigint;
+        minPurchase: bigint;
+        maxPurchase: bigint;
+        saleSupply: bigint;
+        startTime: bigint;
+        endTime: bigint;
+        hardCap: bigint;
+        whitelistEnabled: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "setStablecoinRate"
+  ): TypedContractMethod<
+    [
+      stablecoin: AddressLike,
+      tokensPerUnit: BigNumberish,
+      stablecoinDecimals: BigNumberish,
+      enabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "stablecoinConfigs"
+  ): TypedContractMethod<
+    [arg0: AddressLike],
+    [
+      [bigint, bigint, boolean] & {
+        tokensPerUnit: bigint;
+        stablecoinDecimals: bigint;
+        enabled: boolean;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "startSale"
+  ): TypedContractMethod<
+    [
+      _tokensPerEth: BigNumberish,
+      _minPurchase: BigNumberish,
+      _maxPurchase: BigNumberish,
+      _saleSupply: BigNumberish,
+      _durationInHours: BigNumberish,
+      _hardCap: BigNumberish,
+      _whitelistEnabled: boolean
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "symbol"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "tokensSold"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "totalRaised"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "totalSupply"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -318,6 +874,19 @@ export interface SettlementToken extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "whitelist"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "withdrawRaisedETH"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "withdrawStablecoins"
+  ): TypedContractMethod<
+    [stablecoin: AddressLike, to: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   getEvent(
     key: "Approval"
@@ -334,11 +903,53 @@ export interface SettlementToken extends BaseContract {
     OwnershipTransferredEvent.OutputObject
   >;
   getEvent(
+    key: "SaleEnded"
+  ): TypedContractEvent<
+    SaleEndedEvent.InputTuple,
+    SaleEndedEvent.OutputTuple,
+    SaleEndedEvent.OutputObject
+  >;
+  getEvent(
+    key: "SaleStarted"
+  ): TypedContractEvent<
+    SaleStartedEvent.InputTuple,
+    SaleStartedEvent.OutputTuple,
+    SaleStartedEvent.OutputObject
+  >;
+  getEvent(
+    key: "StablecoinConfigured"
+  ): TypedContractEvent<
+    StablecoinConfiguredEvent.InputTuple,
+    StablecoinConfiguredEvent.OutputTuple,
+    StablecoinConfiguredEvent.OutputObject
+  >;
+  getEvent(
+    key: "TokensPurchased"
+  ): TypedContractEvent<
+    TokensPurchasedEvent.InputTuple,
+    TokensPurchasedEvent.OutputTuple,
+    TokensPurchasedEvent.OutputObject
+  >;
+  getEvent(
+    key: "TokensPurchasedWithStablecoin"
+  ): TypedContractEvent<
+    TokensPurchasedWithStablecoinEvent.InputTuple,
+    TokensPurchasedWithStablecoinEvent.OutputTuple,
+    TokensPurchasedWithStablecoinEvent.OutputObject
+  >;
+  getEvent(
     key: "Transfer"
   ): TypedContractEvent<
     TransferEvent.InputTuple,
     TransferEvent.OutputTuple,
     TransferEvent.OutputObject
+  >;
+  getEvent(
+    key: "WhitelistUpdated"
+  ): TypedContractEvent<
+    WhitelistUpdatedEvent.InputTuple,
+    WhitelistUpdatedEvent.OutputTuple,
+    WhitelistUpdatedEvent.OutputObject
   >;
 
   filters: {
@@ -364,6 +975,61 @@ export interface SettlementToken extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
+    "SaleEnded(uint256,uint256)": TypedContractEvent<
+      SaleEndedEvent.InputTuple,
+      SaleEndedEvent.OutputTuple,
+      SaleEndedEvent.OutputObject
+    >;
+    SaleEnded: TypedContractEvent<
+      SaleEndedEvent.InputTuple,
+      SaleEndedEvent.OutputTuple,
+      SaleEndedEvent.OutputObject
+    >;
+
+    "SaleStarted(tuple)": TypedContractEvent<
+      SaleStartedEvent.InputTuple,
+      SaleStartedEvent.OutputTuple,
+      SaleStartedEvent.OutputObject
+    >;
+    SaleStarted: TypedContractEvent<
+      SaleStartedEvent.InputTuple,
+      SaleStartedEvent.OutputTuple,
+      SaleStartedEvent.OutputObject
+    >;
+
+    "StablecoinConfigured(address,uint256,bool)": TypedContractEvent<
+      StablecoinConfiguredEvent.InputTuple,
+      StablecoinConfiguredEvent.OutputTuple,
+      StablecoinConfiguredEvent.OutputObject
+    >;
+    StablecoinConfigured: TypedContractEvent<
+      StablecoinConfiguredEvent.InputTuple,
+      StablecoinConfiguredEvent.OutputTuple,
+      StablecoinConfiguredEvent.OutputObject
+    >;
+
+    "TokensPurchased(address,uint256,uint256)": TypedContractEvent<
+      TokensPurchasedEvent.InputTuple,
+      TokensPurchasedEvent.OutputTuple,
+      TokensPurchasedEvent.OutputObject
+    >;
+    TokensPurchased: TypedContractEvent<
+      TokensPurchasedEvent.InputTuple,
+      TokensPurchasedEvent.OutputTuple,
+      TokensPurchasedEvent.OutputObject
+    >;
+
+    "TokensPurchasedWithStablecoin(address,address,uint256,uint256)": TypedContractEvent<
+      TokensPurchasedWithStablecoinEvent.InputTuple,
+      TokensPurchasedWithStablecoinEvent.OutputTuple,
+      TokensPurchasedWithStablecoinEvent.OutputObject
+    >;
+    TokensPurchasedWithStablecoin: TypedContractEvent<
+      TokensPurchasedWithStablecoinEvent.InputTuple,
+      TokensPurchasedWithStablecoinEvent.OutputTuple,
+      TokensPurchasedWithStablecoinEvent.OutputObject
+    >;
+
     "Transfer(address,address,uint256)": TypedContractEvent<
       TransferEvent.InputTuple,
       TransferEvent.OutputTuple,
@@ -373,6 +1039,17 @@ export interface SettlementToken extends BaseContract {
       TransferEvent.InputTuple,
       TransferEvent.OutputTuple,
       TransferEvent.OutputObject
+    >;
+
+    "WhitelistUpdated(address[],bool)": TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
+    >;
+    WhitelistUpdated: TypedContractEvent<
+      WhitelistUpdatedEvent.InputTuple,
+      WhitelistUpdatedEvent.OutputTuple,
+      WhitelistUpdatedEvent.OutputObject
     >;
   };
 }
